@@ -1,0 +1,58 @@
+/*-- scss:defaults --*/
+
+$font-family-sans-serif: "Arial", sans-serif !default;
+$body-color: #4B0082 !default;
+$presentation-heading-font: "Arial", sans-serif !default;
+$presentation-heading-color: $body-color !default;
+$presentation-heading-text-shadow: none !default;
+$presentation-heading-text-transform: none !default;
+$body-bg: #fff !default;
+$link-color: #8E3A80 !default;
+$selection-bg: rgba(0, 0, 0, 0.99) !default;
+
+$overlayElementBgColor: 0, 0, 0 !default;
+$overlayElementFgColor: 240, 240, 240 !default;
+
+// Change text colors against dark slide backgrounds
+$dark-bg-text-color: #fff !default;
+
+.reveal .slide-logo {
+  display: block;
+  position: fixed;
+  bottom: unset !important;
+  right: 5px !important;
+  top: 5px;
+  left: unset !important;
+  height: 54px !important;
+  width: 173px !important;
+  max-width: unset !important;
+  max-height: unset !important;
+}
+
+.reveal .cell-output-stdout pre code {
+  max-height: 100% !important;
+  overflow-y: auto;
+}
+
+.reveal .slides section {
+  padding: 1em;
+  font-size: 0.9em;
+}
+
+.center {
+  text-align: center;
+}
+
+.no-scroll {
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+  max-height: none;
+  max-width: 100%;
+}
+.no-scroll svg {
+  display: block;
+  height: auto;
+  width: 100%;
+  overflow: visible;
+}
