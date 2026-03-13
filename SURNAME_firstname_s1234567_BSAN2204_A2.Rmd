@@ -1,0 +1,79 @@
+---
+title: "Predictive Analytics Report (A2)"
+author: "Firstname SURNAME (s1234567)"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = TRUE)
+opts_chunk$set(eval = TRUE)
+opts_chunk$set(warning = FALSE)
+opts_chunk$set(message = FALSE)
+opts_chunk$set(out.width = "100%")
+```
+
+## 1. Introduction
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi vitae diam non sem gravida
+imperdiet quis in sapien. Curabitur urna dui, pulvinar nec sapien eu, porta sodales quam. Nulla
+vitae facilisis risus. In consectetur fermentum velit sit amet volutpat. Morbi lobortis sit amet
+justo id laoreet. Aenean tortor mauris, fermentum sed fringilla at, venenatis nec ante. Ut vitae
+lacinia tortor, non fermentum mi. Phasellus euismod vel erat ac laoreet. Morbi ultricies ultricies
+congue. Ut enim tellus, pellentesque ac lobortis dapibus, vulputate nec felis. Aliquam erat
+volutpat. Integer pretium nulla a massa vulputate vulputate eget non mauris. Cras eu fringilla mi.
+Nam sodales maximus felis et bibendum.
+
+### Data Processing
+
+Write some text that describes what the MSD.Rdata file is, including some of your own background research 
+about where it comes from, etc. Echo the line of code which loads the data.
+
+```{r data processing}
+load('MSD.RData')
+```
+
+Write some more basic text that describes data structure. For example, you could report that there are
+`r nrow(MSD)` rows in the data. Write some more text, and include some more inline code.
+
+## 3. Exploratory Analysis
+
+Section introduction text.
+
+### Descriptive Statistics
+
+Some text. Here's a table:
+
+```{r}
+table(MSD$mode, MSD$time_signature) |> kable()
+```
+
+### Visualisations
+
+More text. Here's a plot:
+
+```{r}
+plot(MSD$mode)
+```
+
+## 3. Predictive Analytics
+
+### Initial Models
+
+### Dealing with Missing Data
+
+### Model Validation
+
+### Predicitions
+
+## 4. Recommendations
+
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi vitae diam non sem gravida
+imperdiet quis in sapien. Curabitur urna dui, pulvinar nec sapien eu, porta sodales quam. Nulla
+vitae facilisis risus. In consectetur fermentum velit sit amet volutpat. Morbi lobortis sit amet
+justo id laoreet. Aenean tortor mauris, fermentum sed fringilla at, venenatis nec ante. Ut vitae
+lacinia tortor, non fermentum mi. Phasellus euismod vel erat ac laoreet. Morbi ultricies ultricies
+congue. Ut enim tellus, pellentesque ac lobortis dapibus, vulputate nec felis. Aliquam erat
+volutpat. Integer pretium nulla a massa vulputate vulputate eget non mauris. Cras eu fringilla mi.
+Nam sodales maximus felis et bibendum.
