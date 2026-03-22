@@ -24,7 +24,6 @@
     .name .text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .meta{ color:#64748b; font-size:14px; }
     .error{ color:#b91c1c; }
-    .sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
   </style>
 </head>
 <body>
@@ -43,59 +42,56 @@
 
       // --- Configuration (override as needed) ---
       const CONFIG = {
-        OWNER: '',        // e.g., 'octocat'  (leave blank to auto-detect on *.github.io)
-        REPO: '',         // e.g., 'octocat.github.io' or 'my-project' (auto-detect when possible)
-        BRANCH: 'main',   // 'main' or 'gh-pages' or as configured
-        PATH: ''          // root directory
+        OWNER: '',        // e.g., 'uqbs' (leave blank to auto-detect on *.github.io)
+        REPO: '',         // e.g., 'BSAN2204' (auto-detect when possible)
+        BRANCH: 'main',   // 'main' or 'gh-pages' or your default branch
+        PATH: ''          // folder within repo to list ('' means repo root of the Pages source)
       };
 
       // Try to auto-detect owner/repo for GitHub Pages
       function autodetect() {
-        const host = location.hostname;         // e.g., user.github.io or custom domain
-        const parts = location.pathname.split('/').filter(Boolean);
-        const info = { owner: CONFIG.OWNER, repo: CONFIG.REPO };
+        const host = location.hostname;               // e.g., uqbs.github.io or custom domain
+        const parts = location.pathname.split('/').filter(Boolean); // e.g., ['BSAN2204', ...]
+        let owner = CONFIG.OWNER || '';
+        let repo = CONFIG.REPO || '';
 
-        if (!info.owner && host.endsWith('.github.io')) {
-          info.owner = host.split('.')[0];
+        if (!owner && host.endsWith('.github.io')) {
+          owner = host.split('.')[0]; // 'uqbs'
         }
-
-        // Project page pattern: /REPO_NAME/...
-        if (!info.repo) {
-          if (info.owner && parts.length > 0) {
-            info.repo = parts[0];
-          } else if (info.owner) {
-            // Likely a user/organization site
-            info.repo = `${info.owner}.github.io`;
+        if (!repo) {
+          // Project page pattern: /REPO_NAME/...
+          if (parts.length > 0) {
+            repo = parts[0];          // 'BSAN2204'
+          } else if (owner && host.endsWith('.github.io')) {
+            // User/Org site
+            repo = `${owner}.github.io`;
           }
         }
-        return info;
+        return { owner, repo };
       }
 
       const { owner, repo } = autodetect();
-
       if (!owner || !repo) {
         statusEl.className = 'error';
         statusEl.textContent = 'Could not detect repository. Set OWNER and REPO in the script config.';
         return;
       }
 
-      // Build GitHub Contents API URL for the root
+      // Build GitHub Contents API URL for the folder to list
       const branch = CONFIG.BRANCH || 'main';
-      const path = CONFIG.PATH ? `/${CONFIG.PATH.replace(/^\/|\/$/g, '')}` : '';
-      const apiURL = `https://api.github.com/repos/${owner}/${repo}/contents${path}?ref=${encodeURIComponent(branch)}`;
+      const apiPath = CONFIG.PATH ? `/${CONFIG.PATH.replace(/^\/|\/$/g, '')}` : '';
+      const apiURL = `https://api.github.com/repos/${owner}/${repo}/contents${apiPath}?ref=${encodeURIComponent(branch)}`;
 
       try {
         const res = await fetch(apiURL, { headers: { 'Accept': 'application/vnd.github+json' } });
-        if (!res.ok) {
-          throw new Error(`GitHub API error ${res.status}: ${await res.text()}`);
-        }
+        if (!res.ok) throw new Error(`GitHub API error ${res.status}: ${await res.text()}`);
         const items = await res.json();
 
-        // Keep only files in root; hide this index.html to avoid self-link
+        // Only list files (not directories); hide this index.html
         const files = (Array.isArray(items) ? items : [])
           .filter(i => i && i.type === 'file')
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }))
-          .filter(i => i.name.toLowerCase() !== 'index.html');
+          .filter(i => i.name.toLowerCase() !== 'index.html')
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
         if (files.length === 0) {
           statusEl.textContent = 'No files found in the root directory.';
@@ -112,13 +108,16 @@
           left.className = 'name';
           const icon = document.createElement('span');
           icon.className = 'icon';
-          // lightweight mime-ish icon: emoji is fine here
           icon.textContent = '📄';
+
           const link = document.createElement('a');
-          link.href = `${path}/${encodeURIComponent(f.name)}`.replace(/\/\//g, '/');
-          link.className = 'text';
+          // IMPORTANT: use a RELATIVE href so it resolves under the current base path (e.g., /BSAN2204/)
+          const relativeHref = encodeURIComponent(f.name).replace(/%2F/g, '/'); // keep any subpaths safe
+          link.setAttribute('href', relativeHref);    // attribute is relative (no leading slash)
           link.textContent = f.name;
-          link.setAttribute('title', f.name);
+          link.className = 'text';
+          link.title = f.name;
+
           left.append(icon, link);
 
           const right = document.createElement('div');
@@ -133,7 +132,7 @@
       } catch (err) {
         console.error(err);
         statusEl.className = 'error';
-        statusEl.textContent = 'Failed to load file list. If this is a custom domain, set OWNER and REPO in the config.';
+        statusEl.textContent = 'Failed to load file list. If this is a custom domain, set OWNER and REPO in the config, and ensure BRANCH & PATH match your Pages source.';
       }
 
       function humanSize(bytes) {
