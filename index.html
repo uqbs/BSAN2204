@@ -12,6 +12,7 @@
       line-height:1.6; padding:24px; max-width:860px; margin-inline:auto;
     }
     h1{ font-size:clamp(20px,3vw,28px); margin:0 0 12px; }
+    h2{ font-size:clamp(18px,2.5vw,22px); margin:24px 0 8px; }
     p.hint{ margin:0 0 16px; color:#64748b; }
     ul{ list-style:none; padding:0; margin:0; }
     li{
@@ -24,122 +25,147 @@
     .name .text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .meta{ color:#64748b; font-size:14px; }
     .error{ color:#b91c1c; }
+
+    /* Subtle section separation */
+    section + section{ margin-top: 20px; }
+    .section-wrap { margin-top: 24px; }
+    .visually-hidden{ position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px, 1px, 1px, 1px); white-space:nowrap; }
   </style>
 </head>
 <body>
   <h1>Files in this directory</h1>
   <p id="status" class="hint">Loading…</p>
-  <ul id="files" aria-live="polite"></ul>
 
-  <noscript>
-    <p class="error">This page requires JavaScript to fetch the file list from the GitHub API.</p>
-  </noscript>
+  <!-- ---- OPTIONAL: If your indexer prints a flat list, place it here ---- -->
+  <!-- The script will read items from #all-files and redistribute them into sections. -->
+  <ul id="all-files" aria-label="All files (source list for auto-grouping)">
+    <!-- Example structure expected (your generator likely matches this):
+    <li>
+      <span class="name">
+        <span class="icon">📄</span>
+        Lecture01-Intro.pdfLecture01-Intro.pdf</a>
+      </span>
+      <span class="meta">12 KB</span>
+    </li>
+    -->
+  </ul>
+
+  <div class="section-wrap">
+    <!-- Lectures Section -->
+    <section id="lectures" aria-labelledby="lectures-heading">
+      <h2 id="lectures-heading">Lectures</h2>
+      <ul id="lectures-list"></ul>
+      <!-- If you want to hardcode, add items like:
+      <li>
+        <span class="name">
+          <span class="icon">🎓</span>
+          lectures/lecture1.htmlLecture 1 – Introduction</a>
+        </span>
+        <span class="meta">HTML</span>
+      </li>
+      -->
+    </section>
+
+    <!-- Tutorials Section -->
+    <section id="tutorials" aria-labelledby="tutorials-heading">
+      <h2 id="tutorials-heading">Tutorials</h2>
+      <ul id="tutorials-list"></ul>
+    </section>
+
+    <!-- Other files Section (fallback for non-lecture/tutorial content) -->
+    <section id="others" aria-labelledby="others-heading">
+      <h2 id="others-heading">Other files</h2>
+      <ul id="others-list"></ul>
+    </section>
+  </div>
 
   <script>
-    (async () => {
+    (function () {
       const statusEl = document.getElementById('status');
-      const listEl = document.getElementById('files');
+      const sourceList = document.getElementById('all-files');
+      const lecturesList = document.getElementById('lectures-list');
+      const tutorialsList = document.getElementById('tutorials-list');
+      const othersList = document.getElementById('others-list');
 
-      // --- Configuration (override as needed) ---
-      const CONFIG = {
-        OWNER: '',        // e.g., 'uqbs' (leave blank to auto-detect on *.github.io)
-        REPO: '',         // e.g., 'BSAN2204' (auto-detect when possible)
-        BRANCH: 'main',   // 'main' or 'gh-pages' or your default branch
-        PATH: ''          // folder within repo to list ('' means repo root of the Pages source)
-      };
+      // Define matching rules (extend as needed)
+      const isLecture = (name) => /\b(lecture|lec)\b|\bweek\s*\d+.*lecture/i.test(name) || /^lecture/i.test(name);
+      const isTutorial = (name) => /\b(tutorial|tut|workshop|lab)\b/i.test(name) || /^tutorial/i.test(name);
 
-      // Try to auto-detect owner/repo for GitHub Pages
-      function autodetect() {
-        const host = location.hostname;               // e.g., uqbs.github.io or custom domain
-        const parts = location.pathname.split('/').filter(Boolean); // e.g., ['BSAN2204', ...]
-        let owner = CONFIG.OWNER || '';
-        let repo = CONFIG.REPO || '';
-
-        if (!owner && host.endsWith('.github.io')) {
-          owner = host.split('.')[0]; // 'uqbs'
-        }
-        if (!repo) {
-          // Project page pattern: /REPO_NAME/...
-          if (parts.length > 0) {
-            repo = parts[0];          // 'BSAN2204'
-          } else if (owner && host.endsWith('.github.io')) {
-            // User/Org site
-            repo = `${owner}.github.io`;
+      // Helper: clone a list item, preserving structure but changing icon if desired
+      function cloneItem(li, iconEmoji) {
+        const clone = li.cloneNode(true);
+        // Try to swap icon for better semantics if there's an icon span
+        const nameSpan = clone.querySelector('.name');
+        if (nameSpan) {
+          let iconSpan = nameSpan.querySelector('.icon');
+          if (!iconSpan) {
+            iconSpan = document.createElement('span');
+            iconSpan.className = 'icon';
+            nameSpan.prepend(iconSpan);
           }
+          iconSpan.textContent = iconEmoji;
         }
-        return { owner, repo };
+        return clone;
       }
 
-      const { owner, repo } = autodetect();
-      if (!owner || !repo) {
-        statusEl.className = 'error';
-        statusEl.textContent = 'Could not detect repository. Set OWNER and REPO in the script config.';
-        return;
+      function distribute() {
+        const items = Array.from(sourceList.querySelectorAll(':scope > li'));
+        let lecturesCount = 0, tutorialsCount = 0, othersCount = 0;
+
+        items.forEach(li => {
+          const anchor = li.querySelector('a');
+          const text = (anchor?.textContent || '').trim();
+          const href = (anchor?.getAttribute('href') || '').trim();
+          const key = (text || href).toLowerCase();
+
+          if (isLecture(key)) {
+            lecturesList.appendChild(cloneItem(li, '🎓'));
+            lecturesCount++;
+          } else if (isTutorial(key)) {
+            tutorialsList.appendChild(cloneItem(li, '🧩'));
+            tutorialsCount++;
+          } else {
+            othersList.appendChild(cloneItem(li, '📄'));
+            othersCount++;
+          }
+        });
+
+        // Hide empty sections
+        document.getElementById('lectures').style.display = lecturesCount ? '' : 'none';
+        document.getElementById('tutorials').style.display = tutorialsCount ? '' : 'none';
+        document.getElementById('others').style.display = othersCount ? '' : 'none';
+
+        // If we successfully redistributed, we can optionally hide the source list
+        if (items.length) {
+          sourceList.classList.add('visually-hidden');
+          statusEl.textContent = 'Grouped by category.';
+        } else {
+          statusEl.textContent = 'No files found.';
+        }
       }
 
-      // Build GitHub Contents API URL for the folder to list
-      const branch = CONFIG.BRANCH || 'main';
-      const apiPath = CONFIG.PATH ? `/${CONFIG.PATH.replace(/^\/|\/$/g, '')}` : '';
-      const apiURL = `https://api.github.com/repos/${owner}/${repo}/contents${apiPath}?ref=${encodeURIComponent(branch)}`;
+      // If your list is injected asynchronously by a generator, wait a bit
+      const MAX_WAIT_MS = 1200;
+      let waited = 0;
 
-      try {
-        const res = await fetch(apiURL, { headers: { 'Accept': 'application/vnd.github+json' } });
-        if (!res.ok) throw new Error(`GitHub API error ${res.status}: ${await res.text()}`);
-        const items = await res.json();
-
-        // Only list files (not directories); hide this index.html
-        const files = (Array.isArray(items) ? items : [])
-          .filter(i => i && i.type === 'file')
-          .filter(i => i.name.toLowerCase() !== 'index.html')
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
-
-        if (files.length === 0) {
-          statusEl.textContent = 'No files found in the root directory.';
-          return;
+      function tryDistribute() {
+        const hasItems = sourceList.querySelector('li');
+        if (hasItems) {
+          distribute();
+        } else if (waited < MAX_WAIT_MS) {
+          waited += 100;
+          setTimeout(tryDistribute, 100);
+        } else {
+          statusEl.textContent = 'Ready. Add files to display.';
         }
-
-        statusEl.textContent = `Found ${files.length} file${files.length > 1 ? 's' : ''}.`;
-        const frag = document.createDocumentFragment();
-
-        for (const f of files) {
-          const li = document.createElement('li');
-
-          const left = document.createElement('div');
-          left.className = 'name';
-          const icon = document.createElement('span');
-          icon.className = 'icon';
-          icon.textContent = '📄';
-
-          const link = document.createElement('a');
-          // IMPORTANT: use a RELATIVE href so it resolves under the current base path (e.g., /BSAN2204/)
-          const relativeHref = encodeURIComponent(f.name).replace(/%2F/g, '/'); // keep any subpaths safe
-          link.setAttribute('href', relativeHref);    // attribute is relative (no leading slash)
-          link.textContent = f.name;
-          link.className = 'text';
-          link.title = f.name;
-
-          left.append(icon, link);
-
-          const right = document.createElement('div');
-          right.className = 'meta';
-          right.textContent = humanSize(f.size);
-
-          li.append(left, right);
-          frag.appendChild(li);
-        }
-
-        listEl.appendChild(frag);
-      } catch (err) {
-        console.error(err);
-        statusEl.className = 'error';
-        statusEl.textContent = 'Failed to load file list. If this is a custom domain, set OWNER and REPO in the config, and ensure BRANCH & PATH match your Pages source.';
       }
 
-      function humanSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const units = ['B','KB','MB','GB','TB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(1024));
-        return `${(bytes / Math.pow(1024, i)).toFixed(i ? 1 : 0)} ${units[i]}`;
+      // Kick off
+      statusEl.textContent = 'Loading…';
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', tryDistribute);
+      } else {
+        tryDistribute();
       }
     })();
   </script>
