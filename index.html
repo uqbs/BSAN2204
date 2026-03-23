@@ -25,27 +25,44 @@
     .name .text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
     .meta{ color:#64748b; font-size:14px; }
     .error{ color:#b91c1c; }
-
-    /* Subtle section separation */
     section + section{ margin-top: 20px; }
     .section-wrap { margin-top: 24px; }
     .visually-hidden{ position:absolute !important; height:1px; width:1px; overflow:hidden; clip:rect(1px, 1px, 1px, 1px); white-space:nowrap; }
+    noscript p { color:#b45309; background:rgba(250,204,21,.15); border:1px solid rgba(245,158,11,.3); padding:8px 12px; border-radius:8px; }
   </style>
 </head>
 <body>
   <h1>Files in this directory</h1>
   <p id="status" class="hint">Loading…</p>
 
-  <!-- ---- OPTIONAL: If your indexer prints a flat list, place it here ---- -->
+  <noscript>
+    <p>JavaScript is disabled. Files will not be grouped automatically. Enable JavaScript or manually organize your links below.</p>
+  </noscript>
+
+  <!-- SOURCE LIST (optional if your indexer prints a flat list here) -->
   <!-- The script will read items from #all-files and redistribute them into sections. -->
   <ul id="all-files" aria-label="All files (source list for auto-grouping)">
-    <!-- Example structure expected (your generator likely matches this):
+    <!-- Example structure (your generator likely matches this):
     <li>
       <span class="name">
         <span class="icon">📄</span>
-        Lecture01-Intro.pdfLecture01-Intro.pdf</a>
+        <a class="text" href="Lecture1-Intro.pdf</a>
       </span>
-      <span class="meta">12 KB</span>
+      <span class="meta">PDF · 1.2 MB</span>
+    </li>
+    <li>
+      <span class="name">
+        <span class="icon">📄</span>
+        materials/Tutorial_02.htmlTutorial_02.html</a>
+      </span>
+      <span class="meta">HTML</span>
+    </li>
+    <li>
+      <span class="name">
+        <span class="icon">📄</span>
+        Syllabus.pdfSyllabus.pdf</a>
+      </span>
+      <span class="meta">PDF</span>
     </li>
     -->
   </ul>
@@ -55,15 +72,6 @@
     <section id="lectures" aria-labelledby="lectures-heading">
       <h2 id="lectures-heading">Lectures</h2>
       <ul id="lectures-list"></ul>
-      <!-- If you want to hardcode, add items like:
-      <li>
-        <span class="name">
-          <span class="icon">🎓</span>
-          lectures/lecture1.htmlLecture 1 – Introduction</a>
-        </span>
-        <span class="meta">HTML</span>
-      </li>
-      -->
     </section>
 
     <!-- Tutorials Section -->
@@ -72,7 +80,7 @@
       <ul id="tutorials-list"></ul>
     </section>
 
-    <!-- Other files Section (fallback for non-lecture/tutorial content) -->
+    <!-- Other files Section -->
     <section id="others" aria-labelledby="others-heading">
       <h2 id="others-heading">Other files</h2>
       <ul id="others-list"></ul>
@@ -87,46 +95,58 @@
       const tutorialsList = document.getElementById('tutorials-list');
       const othersList = document.getElementById('others-list');
 
-      // Define matching rules (extend as needed)
-      const isLecture = (name) => /\b(lecture|lec)\b|\bweek\s*\d+.*lecture/i.test(name) || /^lecture/i.test(name);
-      const isTutorial = (name) => /\b(tutorial|tut|workshop|lab)\b/i.test(name) || /^tutorial/i.test(name);
+      // Matchers: files that START with "Lecture_" or "Tutorial_" (case-insensitive)
+      // If you later allow hyphens as well, use /^lecture[_-]/i and /^tutorial[_-]/i
+      const lectureRe = /^lecture_/i;
+      const tutorialRe = /^tutorial_/i;
 
-      // Helper: clone a list item, preserving structure but changing icon if desired
+      // Extract a clean filename key from <a href> (basename), fallback to text
+      function getFileKey(anchor) {
+        const href = (anchor?.getAttribute('href') || '').trim();
+        const text = (anchor?.textContent || '').trim();
+        const raw = href || text || '';
+        try {
+          const noHash = raw.split('#')[0].split('?')[0];
+          const parts = noHash.split('/');
+          const basename = parts[parts.length - 1] || noHash;
+          return decodeURIComponent(basename).toLowerCase();
+        } catch {
+          return raw.toLowerCase();
+        }
+      }
+
+      function isLecture(key) { return lectureRe.test(key); }
+      function isTutorial(key) { return tutorialRe.test(key); }
+
+      // Clone an <li>, optionally add/swap an icon
       function cloneItem(li, iconEmoji) {
         const clone = li.cloneNode(true);
-        // Try to swap icon for better semantics if there's an icon span
-        const nameSpan = clone.querySelector('.name');
-        if (nameSpan) {
-          let iconSpan = nameSpan.querySelector('.icon');
-          if (!iconSpan) {
-            iconSpan = document.createElement('span');
-            iconSpan.className = 'icon';
-            nameSpan.prepend(iconSpan);
-          }
-          iconSpan.textContent = iconEmoji;
+        const nameSpan = clone.querySelector('.name') || clone;
+        let iconSpan = clone.querySelector('.icon');
+        if (!iconSpan) {
+          iconSpan = document.createElement('span');
+          iconSpan.className = 'icon';
+          nameSpan.prepend(iconSpan);
         }
+        iconSpan.textContent = iconEmoji;
         return clone;
       }
 
-      function distribute() {
-        const items = Array.from(sourceList.querySelectorAll(':scope > li'));
+      function distributeFromList(listEl) {
+        const items = Array.from(listEl.querySelectorAll(':scope > li'));
         let lecturesCount = 0, tutorialsCount = 0, othersCount = 0;
 
         items.forEach(li => {
           const anchor = li.querySelector('a');
-          const text = (anchor?.textContent || '').trim();
-          const href = (anchor?.getAttribute('href') || '').trim();
-          const key = (text || href).toLowerCase();
+          const key = getFileKey(anchor);
+          if (!key) return;
 
           if (isLecture(key)) {
-            lecturesList.appendChild(cloneItem(li, '🎓'));
-            lecturesCount++;
+            lecturesList.appendChild(cloneItem(li, '🎓')); lecturesCount++;
           } else if (isTutorial(key)) {
-            tutorialsList.appendChild(cloneItem(li, '🧩'));
-            tutorialsCount++;
+            tutorialsList.appendChild(cloneItem(li, '🧩')); tutorialsCount++;
           } else {
-            othersList.appendChild(cloneItem(li, '📄'));
-            othersCount++;
+            othersList.appendChild(cloneItem(li, '📄')); othersCount++;
           }
         });
 
@@ -135,22 +155,46 @@
         document.getElementById('tutorials').style.display = tutorialsCount ? '' : 'none';
         document.getElementById('others').style.display = othersCount ? '' : 'none';
 
-        // If we successfully redistributed, we can optionally hide the source list
-        if (items.length) {
-          sourceList.classList.add('visually-hidden');
-          statusEl.textContent = 'Grouped by category.';
-        } else {
-          statusEl.textContent = 'No files found.';
-        }
+        // Hide the source list if it was only for feeding
+        if (items.length) listEl.classList.add('visually-hidden');
+
+        return (lecturesCount + tutorialsCount + othersCount) > 0;
       }
 
-      // If your list is injected asynchronously by a generator, wait a bit
-      const MAX_WAIT_MS = 1200;
+      function distribute() {
+        let populated = false;
+
+        // Preferred: if you have a flat index list in #all-files
+        if (sourceList) {
+          const hasItems = sourceList.querySelector('li');
+          if (hasItems) {
+            populated = distributeFromList(sourceList);
+          }
+        }
+
+        // Fallback: scan any top-level lists on the page if #all-files is empty/unused
+        if (!populated) {
+          const candidateLists = Array
+            .from(document.querySelectorAll('ul'))
+            .filter(ul => !['lectures-list','tutorials-list','others-list','all-files'].includes(ul.id));
+          for (const ul of candidateLists) {
+            if (ul.querySelector('li a')) {
+              populated = distributeFromList(ul) || populated;
+            }
+          }
+        }
+
+        statusEl.textContent = populated ? 'Grouped by category.' : 'No files found.';
+      }
+
+      // Handle async injection (e.g., static site generators or client-side fetch)
+      const MAX_WAIT_MS = 2000;
       let waited = 0;
 
       function tryDistribute() {
-        const hasItems = sourceList.querySelector('li');
-        if (hasItems) {
+        const hasSourceItems = sourceList?.querySelector('li');
+        const hasAnyItems = hasSourceItems || document.querySelector('ul li a');
+        if (hasAnyItems) {
           distribute();
         } else if (waited < MAX_WAIT_MS) {
           waited += 100;
@@ -160,7 +204,6 @@
         }
       }
 
-      // Kick off
       statusEl.textContent = 'Loading…';
       if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', tryDistribute);
