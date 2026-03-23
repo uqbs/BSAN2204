@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Directory Listing</title>
-  <meta name="description" content="Lists files in the repository root." />
+  <meta name="description" content="Lists files and groups them by Lectures and Tutorials." />
   <style>
     :root{ color-scheme: light dark; }
     body{
@@ -36,179 +36,173 @@
   <p id="status" class="hint">Loading…</p>
 
   <noscript>
-    <p>JavaScript is disabled. Files will not be grouped automatically. Enable JavaScript or manually organize your links below.</p>
+    <p>JavaScript is disabled. Enable it to auto‑list files (or add manual links).</p>
   </noscript>
 
-  <!-- SOURCE LIST (optional if your indexer prints a flat list here) -->
-  <!-- The script will read items from #all-files and redistribute them into sections. -->
-  <ul id="all-files" aria-label="All files (source list for auto-grouping)">
-    <!-- Example structure (your generator likely matches this):
-    <li>
-      <span class="name">
-        <span class="icon">📄</span>
-        <a class="text" href="Lecture1-Intro.pdf</a>
-      </span>
-      <span class="meta">PDF · 1.2 MB</span>
-    </li>
-    <li>
-      <span class="name">
-        <span class="icon">📄</span>
-        materials/Tutorial_02.htmlTutorial_02.html</a>
-      </span>
-      <span class="meta">HTML</span>
-    </li>
-    <li>
-      <span class="name">
-        <span class="icon">📄</span>
-        Syllabus.pdfSyllabus.pdf</a>
-      </span>
-      <span class="meta">PDF</span>
-    </li>
-    -->
-  </ul>
-
   <div class="section-wrap">
-    <!-- Lectures Section -->
-    <section id="lectures" aria-labelledby="lectures-heading">
+    <section id="lectures" aria-labelledby="lectures-heading" style="display:none;">
       <h2 id="lectures-heading">Lectures</h2>
       <ul id="lectures-list"></ul>
     </section>
 
-    <!-- Tutorials Section -->
-    <section id="tutorials" aria-labelledby="tutorials-heading">
+    <section id="tutorials" aria-labelledby="tutorials-heading" style="display:none;">
       <h2 id="tutorials-heading">Tutorials</h2>
       <ul id="tutorials-list"></ul>
     </section>
 
-    <!-- Other files Section -->
-    <section id="others" aria-labelledby="others-heading">
+    <section id="others" aria-labelledby="others-heading" style="display:none;">
       <h2 id="others-heading">Other files</h2>
       <ul id="others-list"></ul>
     </section>
   </div>
 
+  <!-- ====== CONFIG (choose one approach) ====== -->
+  <script>
+    // OPTION A: GitHub Pages (auto-list via GitHub API)
+    // Fill these in if your site is on GitHub Pages.
+    // Leave owner/repo empty to skip GitHub and use files.json instead.
+    window.REPO = {
+      provider: 'github',
+      owner: '',          // e.g. 'thomasmagor'
+      repo: '',           // e.g. 'marketing-101'
+      path: '',           // optional: subfolder inside repo, '' for root
+      branch: 'main'      // optional
+    };
+
+    // OPTION B: Manifest file (works on any host)
+    // Create a files.json in the same folder as index.html (see sample below).
+    // The script will automatically fall back to files.json if GitHub config is blank or fails.
+  </script>
+
   <script>
     (function () {
       const statusEl = document.getElementById('status');
-      const sourceList = document.getElementById('all-files');
+      const lecturesEl = document.getElementById('lectures');
+      const tutorialsEl = document.getElementById('tutorials');
+      const othersEl = document.getElementById('others');
       const lecturesList = document.getElementById('lectures-list');
       const tutorialsList = document.getElementById('tutorials-list');
       const othersList = document.getElementById('others-list');
 
-      // Matchers: files that START with "Lecture_" or "Tutorial_" (case-insensitive)
-      // If you later allow hyphens as well, use /^lecture[_-]/i and /^tutorial[_-]/i
+      // Matchers: start with Lecture_ or Tutorial_ (case-insensitive)
       const lectureRe = /^lecture_/i;
       const tutorialRe = /^tutorial_/i;
 
-      // Extract a clean filename key from <a href> (basename), fallback to text
-      function getFileKey(anchor) {
-        const href = (anchor?.getAttribute('href') || '').trim();
-        const text = (anchor?.textContent || '').trim();
-        const raw = href || text || '';
-        try {
-          const noHash = raw.split('#')[0].split('?')[0];
-          const parts = noHash.split('/');
-          const basename = parts[parts.length - 1] || noHash;
-          return decodeURIComponent(basename).toLowerCase();
-        } catch {
-          return raw.toLowerCase();
-        }
-      }
+      // Exclude noise files if present
+      const EXCLUDE = new Set(['index.html','files.json','.ds_store']);
 
-      function isLecture(key) { return lectureRe.test(key); }
-      function isTutorial(key) { return tutorialRe.test(key); }
+      function show(el, on) { el.style.display = on ? '' : 'none'; }
 
-      // Clone an <li>, optionally add/swap an icon
-      function cloneItem(li, iconEmoji) {
-        const clone = li.cloneNode(true);
-        const nameSpan = clone.querySelector('.name') || clone;
-        let iconSpan = clone.querySelector('.icon');
-        if (!iconSpan) {
-          iconSpan = document.createElement('span');
-          iconSpan.className = 'icon';
-          nameSpan.prepend(iconSpan);
-        }
-        iconSpan.textContent = iconEmoji;
-        return clone;
-      }
+      function addItem(targetList, { name, href, size }, icon) {
+        const li = document.createElement('li');
 
-      function distributeFromList(listEl) {
-        const items = Array.from(listEl.querySelectorAll(':scope > li'));
-        let lecturesCount = 0, tutorialsCount = 0, othersCount = 0;
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'name';
 
-        items.forEach(li => {
-          const anchor = li.querySelector('a');
-          const key = getFileKey(anchor);
-          if (!key) return;
+        const iconSpan = document.createElement('span');
+        iconSpan.className = 'icon';
+        iconSpan.textContent = icon;
 
-          if (isLecture(key)) {
-            lecturesList.appendChild(cloneItem(li, '🎓')); lecturesCount++;
-          } else if (isTutorial(key)) {
-            tutorialsList.appendChild(cloneItem(li, '🧩')); tutorialsCount++;
-          } else {
-            othersList.appendChild(cloneItem(li, '📄')); othersCount++;
-          }
-        });
+        const link = document.createElement('a');
+        link.className = 'text';
+        link.href = href || name;
+        link.textContent = name;
 
-        // Hide empty sections
-        document.getElementById('lectures').style.display = lecturesCount ? '' : 'none';
-        document.getElementById('tutorials').style.display = tutorialsCount ? '' : 'none';
-        document.getElementById('others').style.display = othersCount ? '' : 'none';
+        nameSpan.append(iconSpan, link);
+        li.appendChild(nameSpan);
 
-        // Hide the source list if it was only for feeding
-        if (items.length) listEl.classList.add('visually-hidden');
-
-        return (lecturesCount + tutorialsCount + othersCount) > 0;
-      }
-
-      function distribute() {
-        let populated = false;
-
-        // Preferred: if you have a flat index list in #all-files
-        if (sourceList) {
-          const hasItems = sourceList.querySelector('li');
-          if (hasItems) {
-            populated = distributeFromList(sourceList);
-          }
+        if (size) {
+          const meta = document.createElement('span');
+          meta.className = 'meta';
+          meta.textContent = prettySize(size);
+          li.appendChild(meta);
         }
 
-        // Fallback: scan any top-level lists on the page if #all-files is empty/unused
-        if (!populated) {
-          const candidateLists = Array
-            .from(document.querySelectorAll('ul'))
-            .filter(ul => !['lectures-list','tutorials-list','others-list','all-files'].includes(ul.id));
-          for (const ul of candidateLists) {
-            if (ul.querySelector('li a')) {
-              populated = distributeFromList(ul) || populated;
+        targetList.appendChild(li);
+      }
+
+      function prettySize(bytes) {
+        if (typeof bytes !== 'number') return '';
+        const units = ['B','KB','MB','GB'];
+        let i = 0;
+        while (bytes >= 1024 && i < units.length-1) { bytes /= 1024; i++; }
+        return `${bytes.toFixed(bytes < 10 && i ? 1 : 0)} ${units[i]}`;
+      }
+
+      function categorize(files) {
+        let lec = 0, tut = 0, oth = 0;
+
+        files
+          .filter(f => f && f.name && !EXCLUDE.has(f.name.toLowerCase()))
+          .sort((a,b) => a.name.localeCompare(b.name, undefined, {numeric:true, sensitivity:'base'}))
+          .forEach(f => {
+            const key = f.name.toLowerCase();
+            if (lectureRe.test(key)) {
+              addItem(lecturesList, f, '🎓'); lec++;
+            } else if (tutorialRe.test(key)) {
+              addItem(tutorialsList, f, '🧩'); tut++;
+            } else {
+              addItem(othersList, f, '📄'); oth++;
             }
+          });
+
+        show(lecturesEl, lec > 0);
+        show(tutorialsEl, tut > 0);
+        show(othersEl, oth > 0);
+
+        statusEl.textContent = (lec + tut + oth) ? 'Grouped by category.' : 'No files found.';
+      }
+
+      async function fetchFromGitHub(cfg) {
+        if (!cfg || !cfg.owner || !cfg.repo) return null;
+        const base = `https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/contents/`;
+        const url = cfg.path ? base + encodeURIComponent(cfg.path).replace(/%2F/g,'/') : base;
+
+        const res = await fetch(url, { headers: { 'Accept': 'application/vnd.github+json' }});
+        if (!res.ok) throw new Error(`GitHub API ${res.status}`);
+        const data = await res.json();
+
+        // Map API response to {name, href, size}
+        return data
+          .filter(item => item.type === 'file')
+          .map(item => ({ name: item.name, href: item.download_url || item.html_url, size: item.size }));
+      }
+
+      async function fetchFromManifest() {
+        const res = await fetch('./files.json', { cache: 'no-store' });
+        if (!res.ok) throw new Error('files.json not found');
+        const arr = await res.json();
+        // Support either array of strings or array of objects
+        return arr.map(x => typeof x === 'string' ? ({ name: x, href: x }) : x);
+      }
+
+      async function run() {
+        statusEl.textContent = 'Loading…';
+
+        // Try GitHub first (if configured), then fallback to files.json
+        try {
+          const ghFiles = await fetchFromGitHub(window.REPO);
+          if (ghFiles && ghFiles.length) {
+            categorize(ghFiles);
+            return;
           }
+        } catch (e) {
+          // fall through to manifest
         }
 
-        statusEl.textContent = populated ? 'Grouped by category.' : 'No files found.';
-      }
-
-      // Handle async injection (e.g., static site generators or client-side fetch)
-      const MAX_WAIT_MS = 2000;
-      let waited = 0;
-
-      function tryDistribute() {
-        const hasSourceItems = sourceList?.querySelector('li');
-        const hasAnyItems = hasSourceItems || document.querySelector('ul li a');
-        if (hasAnyItems) {
-          distribute();
-        } else if (waited < MAX_WAIT_MS) {
-          waited += 100;
-          setTimeout(tryDistribute, 100);
-        } else {
-          statusEl.textContent = 'Ready. Add files to display.';
+        try {
+          const mfFiles = await fetchFromManifest();
+          categorize(mfFiles);
+          return;
+        } catch (e) {
+          statusEl.textContent = 'Ready. Add files.json or configure GitHub repo.';
         }
       }
 
-      statusEl.textContent = 'Loading…';
       if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', tryDistribute);
+        document.addEventListener('DOMContentLoaded', run);
       } else {
-        tryDistribute();
+        run();
       }
     })();
   </script>
