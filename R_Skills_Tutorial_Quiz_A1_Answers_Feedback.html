@@ -1178,8 +1178,10 @@ This slide deck contains <strong>all questions from the master list</strong>, wi
 <li>On the following slides, each question from a master list is shown</li>
 <li>In this master list <strong>A</strong> is always the correct answer</li>
 <li>The footer shows where the question appears in each quiz version and the correct answer letter for that version.</li>
-<li>For example, <code>V2: Q8 (D)</code> means the question appears as Question 8 in Version 2 and the correct answer is <strong>D</strong>, <code>(NA)</code> means that question does not appear in that quiz version.</li>
+<li>For example,</li>
 </ul>
+<p><code>V1: (NA)</code> means that question does not appear in that quiz Version 1, and</p>
+<p><code>V2: Q8 (D)</code> means the question appears as Question 8 in Version 2 and the correct answer is <strong>D</strong>.</p>
 </section>
 <section id="which-line-of-r-code-creates-an-object-called-my_vector-that-contains-a-numeric-vector-of-numbers-from-1-to-10" class="slide level2 smaller">
 <h2>Which line of R code creates an object called <code>my_vector</code> that contains a numeric vector of numbers from 1 to 10?</h2>
@@ -1415,8 +1417,10 @@ This slide deck contains <strong>all questions from the master list</strong>, wi
 <script>
 window.addEventListener("DOMContentLoaded", function () {
   const questionFooters = ["V1: (NA) | V2: Q8 (D) | V3: Q2 (B) | V4: (NA)", "V1: (NA) | V2: Q7 (C) | V3: (NA) | V4: (NA)", "V1: Q4 (A) | V2: Q2 (C) | V3: (NA) | V4: Q11 (B)", "V1: (NA) | V2: (NA) | V3: Q12 (D) | V4: (NA)", "V1: Q9 (B) | V2: Q20 (A) | V3: Q18 (D) | V4: Q2 (B)", "V1: (NA) | V2: Q14 (D) | V3: Q10 (A) | V4: Q13 (C)", "V1: Q18 (A) | V2: (NA) | V3: (NA) | V4: Q5 (D)", "V1: Q16 (A) | V2: Q5 (D) | V3: Q13 (B) | V4: (NA)", "V1: Q13 (C) | V2: (NA) | V3: Q19 (B) | V4: Q9 (C)", "V1: Q5 (C) | V2: Q19 (A) | V3: Q14 (D) | V4: Q3 (B)", "V1: Q8 (A) | V2: (NA) | V3: Q9 (B) | V4: Q6 (C)", "V1: (NA) | V2: Q13 (D) | V3: Q15 (C) | V4: Q4 (C)", "V1: Q14 (C) | V2: Q3 (A) | V3: (NA) | V4: Q8 (A)", "V1: Q3 (D) | V2: (NA) | V3: Q6 (D) | V4: (NA)", "V1: Q1 (D) | V2: (NA) | V3: (NA) | V4: Q7 (A)", "V1: Q19 (B) | V2: Q9 (C) | V3: (NA) | V4: Q10 (C)", "V1: Q20 (D) | V2: Q17 (C) | V3: Q4 (B) | V4: Q20 (D)", "V1: Q6 (A) | V2: Q18 (C) | V3: Q16 (A) | V4: Q12 (D)", "V1: Q2 (A) | V2: Q1 (B) | V3: Q20 (D) | V4: Q16 (A)", "V1: Q10 (A) | V2: (NA) | V3: Q11 (D) | V4: (NA)", "V1: Q12 (D) | V2: Q6 (A) | V3: Q17 (C) | V4: (NA)", "V1: Q7 (C) | V2: Q10 (C) | V3: (NA) | V4: Q15 (B)", "V1: (NA) | V2: Q15 (B) | V3: (NA) | V4: Q14 (B)", "V1: (NA) | V2: Q4 (C) | V3: Q1 (C) | V4: Q1 (C)", "V1: Q17 (A) | V2: Q11 (A) | V3: Q3 (B) | V4: Q17 (A)", "V1: Q15 (B) | V2: Q16 (C) | V3: Q8 (C) | V4: Q19 (B)", "V1: Q11 (A) | V2: (NA) | V3: Q5 (D) | V4: (NA)", "V1: (NA) | V2: (NA) | V3: Q7 (C) | V4: (NA)", "V1: (NA) | V2: Q12 (A) | V3: (NA) | V4: Q18 (A)"];
-  const slides = Array.from(document.querySelectorAll(".reveal .slides section.slide.level2"));
-  slides.slice(1, 1 + questionFooters.length).forEach(function (slide, index) {
+  const questionSlides = Array.from(document.querySelectorAll(".reveal .slides section.slide.level2")).filter(function (slide) {
+    return slide.querySelector(".correct-answer") !== null;
+  });
+  questionSlides.slice(0, questionFooters.length).forEach(function (slide, index) {
     slide.classList.add("question-slide");
     const footer = document.createElement("div");
     footer.className = "question-version-footer";
